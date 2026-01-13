@@ -3,6 +3,10 @@
 import argparse
 import json
 import string
+from nltk.stem import PorterStemmer
+
+
+STEMMER = PorterStemmer()
 
 
 def preprocess_text(text: str, stop_words: list[str]) -> list[str]:
@@ -15,9 +19,9 @@ def preprocess_text(text: str, stop_words: list[str]) -> list[str]:
     # Tokenize text
     tokens = text.split()
 
-    # Remove stop words
+    # Remove stop words and stem tokens
     stop_words = stop_words
-    tokens = [token for token in tokens if token not in stop_words]
+    tokens = [STEMMER.stem(token) for token in tokens if token not in stop_words]
     
     return tokens
 
