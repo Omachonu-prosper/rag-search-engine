@@ -5,7 +5,7 @@ import json
 import string
 
 
-def preprocess_text(text: str) -> list[str]:
+def preprocess_text(text: str, stop_words: list[str]) -> list[str]:
     # Convert text to lowercase
     text = text.lower()
 
@@ -14,6 +14,10 @@ def preprocess_text(text: str) -> list[str]:
 
     # Tokenize text
     tokens = text.split()
+
+    # Remove stop words
+    stop_words = stop_words
+    tokens = [token for token in tokens if token not in stop_words]
     
     return tokens
 
@@ -23,13 +27,20 @@ def search(query: str) -> None:
     with open('/home/bknd-bobby/projects/rag-search-engine/data/movies.json') as file:
         movies = json.load(file).get("movies", [])
 
-    results = []
-    for movie in movies:
-        query_tokens = preprocess_text(query)
-        title_tokens = preprocess_text(movie['title'])
+    with open('/home/bknd-bobby/projects/rag-search-engine/data/stopwords.txt') as file:
+        stop_words = file.read().splitlines()
 
-        if any(token in title_token for title_token  in title_tokens for token in query_tokens):
-            results.append(movie)
+    results = []
+    query_tokens = set(preprocess_text(query, stop_words))
+    for movie in movies:
+        title_tokens = set(preprocess_text(movie['title'], stop_words))
+        matched = False # Protect against multiple matching tokens for same movie
+
+        for query_token in query_tokens:
+            for title_token in title_tokens:
+                if query_token in title_token and movie and not matched:
+                    results.append(movie)
+                    matched = True
     
     results = results[:5]
     for index, movie in enumerate(results, start=1):
