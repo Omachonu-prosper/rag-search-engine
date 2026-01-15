@@ -32,6 +32,9 @@ class InvertedIndex:
     index = {}
     docmap = {}
     stopwords = get_stop_words()
+    cache_dir = Path('/home/bknd-bobby/projects/rag-search-engine/cache')
+    index_file_path = cache_dir / 'index.pkl'
+    docmap_file_path = cache_dir / 'docmap.pkl'
 
     def __add_document(self, doc_id, text):
         tokens = preprocess_text(text, self.stopwords)
@@ -43,7 +46,7 @@ class InvertedIndex:
 
     def get_documents(self, term):
         term = term.lower()
-        doc_ids = self.index[term]
+        doc_ids = self.index.get(term, {})
         return sorted(list(doc_ids))
 
     def build(self, movies):
@@ -52,14 +55,17 @@ class InvertedIndex:
             self.docmap[movie['id']] = movie
 
     def save(self):
-        cache_dir = Path('/home/bknd-bobby/projects/rag-search-engine/cache')
-        index_file_path = cache_dir / 'index.pkl'
-        docmap_file_path = cache_dir / 'docmap.pkl'
-        cache_dir.mkdir(parents=True, exist_ok=True)
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
 
-        with open(index_file_path, 'wb') as index_file:
+        with open(self.index_file_path, 'wb') as index_file:
             pickle.dump(self.index, index_file)
 
-        with open(docmap_file_path, 'wb') as docmap_file:
+        with open(self.docmap_file_path, 'wb') as docmap_file:
             pickle.dump(self.docmap, docmap_file)
 
+    def load(self):
+        with open(self.index_file_path, 'rb') as index_file:
+            self.index = pickle.load(index_file)
+        
+        with open(self.docmap_file_path, 'rb') as docmap_file:
+            self.docmap = pickle.load(docmap_file)

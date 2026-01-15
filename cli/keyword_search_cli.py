@@ -2,36 +2,36 @@
 
 import argparse
 import json
+import sys
 from utils import (
     preprocess_text,
     InvertedIndex,
+    get_stop_words
 )
 
 
 def search(query: str) -> None:
     print(f"Searching for: {query}")
-    with open('/home/bknd-bobby/projects/rag-search-engine/data/movies.json') as file:
-        movies = json.load(file).get("movies", [])
 
-    with open('/home/bknd-bobby/projects/rag-search-engine/data/stopwords.txt') as file:
-        stop_words = file.read().splitlines()
-
-    results = []
-    query_tokens = set(preprocess_text(query, stop_words))
-    for movie in movies:
-        title_tokens = set(preprocess_text(movie['title'], stop_words))
-        matched = False # Protect against multiple matching tokens for same movie
-
-        for query_token in query_tokens:
-            for title_token in title_tokens:
-                if query_token in title_token and movie and not matched:
-                    results.append(movie)
-                    matched = True
+    try:
+        index = InvertedIndex()
+        index.load()
+    except FileNotFoundError:
+        print("Required index files not found! Build the index before searching...")
+        sys.exit(1)
     
-    results = results[:5]
-    for index, movie in enumerate(results, start=1):
-        print(f"{index}. {movie['title']}")
-
+    query_tokens = preprocess_text(query, get_stop_words())
+    doc_ids = []
+    for token in query_tokens:
+        token_doc_ids = index.get_documents(token)
+        for id in token_doc_ids:
+            if len(doc_ids) < 5:
+                doc_ids.append(id)
+    
+    for id in doc_ids:
+        doc = index.docmap[id]
+        print(f"{doc['id']} - {doc['title']}")
+    
 
 def build() -> None:
     with open('/home/bknd-bobby/projects/rag-search-engine/data/movies.json') as file:
@@ -40,10 +40,7 @@ def build() -> None:
     index = InvertedIndex()
     index.build(movies)
     index.save()
-    merida_ids = index.get_documents('merida')
-    print(merida_ids[0])
-    print(index.docmap[merida_ids[0]])
-        
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
