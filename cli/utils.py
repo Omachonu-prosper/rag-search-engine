@@ -63,15 +63,15 @@ class InvertedIndex:
         return object
 
     def get_documents(self, term):
-        term = term.lower()
+        term = STEMMER.stem(term.lower())
         doc_ids = self.index.get(term, {})
         return sorted(list(doc_ids))
-    
+
     def get_tf(self, doc_id, term):
-        term = term.lower()
+        term = STEMMER.stem(term.lower())
         doc_term_frequencies = self.term_frequencies.get(doc_id, Counter())
         return doc_term_frequencies.get(term, 0)
-
+    
     def build(self, movies):
         for movie in movies:
             self.__add_document(movie['id'], f"{movie['title']} {movie['description']}")

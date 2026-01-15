@@ -3,6 +3,7 @@
 import argparse
 import json
 import sys
+import math
 from utils import (
     preprocess_text,
     InvertedIndex,
@@ -46,7 +47,16 @@ def tf(doc_id, term) -> None:
     index = InvertedIndex()
     index.load()
     _tf = index.get_tf(doc_id, term)
-    print(_tf)    
+    print(_tf)
+
+
+def idf(term) -> None:
+    index = InvertedIndex()
+    index.load()
+    docs = index.get_documents(term)
+    print(len(index.docmap), len(docs))
+    _idf = math.log((len(index.docmap) + 1) / (len(docs) + 1))
+    print(f"Inverse document frequency of '{term}': {_idf:.2f}")
 
 
 def main() -> None:
@@ -62,6 +72,8 @@ def main() -> None:
     tf_parser.add_argument("doc_id", type=int, help="Document ID")
     tf_parser.add_argument("term", type=str, help="Search term")
 
+    idf_parser = subparsers.add_parser("idf", help="Check the inverse document frequency of a search term")
+    idf_parser.add_argument("term", type=str, help="Search term")
 
     args = parser.parse_args()
 
@@ -72,6 +84,8 @@ def main() -> None:
             build()
         case "tf":
             tf(args.doc_id, args.term)
+        case "idf":
+            idf(args.term)
         case _:
             parser.print_help()
 
