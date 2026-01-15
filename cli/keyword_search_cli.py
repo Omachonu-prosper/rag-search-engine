@@ -2,28 +2,10 @@
 
 import argparse
 import json
-import string
-from nltk.stem import PorterStemmer
-
-
-STEMMER = PorterStemmer()
-
-
-def preprocess_text(text: str, stop_words: list[str]) -> list[str]:
-    # Convert text to lowercase
-    text = text.lower()
-
-    # Remove punctuation
-    text = text.translate(str.maketrans("", "", string.punctuation))
-
-    # Tokenize text
-    tokens = text.split()
-
-    # Remove stop words and stem tokens
-    stop_words = stop_words
-    tokens = [STEMMER.stem(token) for token in tokens if token not in stop_words]
-    
-    return tokens
+from utils import (
+    preprocess_text,
+    InvertedIndex,
+)
 
 
 def search(query: str) -> None:
@@ -49,7 +31,19 @@ def search(query: str) -> None:
     results = results[:5]
     for index, movie in enumerate(results, start=1):
         print(f"{index}. {movie['title']}")
+
+
+def build() -> None:
+    with open('/home/bknd-bobby/projects/rag-search-engine/data/movies.json') as file:
+        movies = json.load(file).get("movies", [])
     
+    index = InvertedIndex()
+    index.build(movies)
+    index.save()
+    merida_ids = index.get_documents('merida')
+    print(merida_ids[0])
+    print(index.docmap[merida_ids[0]])
+        
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
@@ -58,12 +52,15 @@ def main() -> None:
     search_parser = subparsers.add_parser("search", help="Search movies using BM25")
     search_parser.add_argument("query", type=str, help="Search query")
 
+    search_parser = subparsers.add_parser("build", help="Build the inverted index and save to disk")
+
     args = parser.parse_args()
 
     match args.command:
         case "search":
-            # print the search query here
             search(args.query)
+        case "build":
+            build()
         case _:
             parser.print_help()
 
