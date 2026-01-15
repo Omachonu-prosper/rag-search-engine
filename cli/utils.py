@@ -1,6 +1,7 @@
 import string
 import pickle
 from pathlib import Path
+from collections import Counter
 from nltk.stem import PorterStemmer
 
 STEMMER = PorterStemmer()
@@ -31,10 +32,13 @@ def preprocess_text(text: str, stop_words: list[str]) -> list[str]:
 class InvertedIndex:
     index = {}
     docmap = {}
+    term_frequencies = {}
+
     stopwords = get_stop_words()
     cache_dir = Path('/home/bknd-bobby/projects/rag-search-engine/cache')
     index_file_path = cache_dir / 'index.pkl'
     docmap_file_path = cache_dir / 'docmap.pkl'
+    term_frequencies_file_path = cache_dir / 'term_frequencies.pkl'
 
     def __add_document(self, doc_id, text):
         tokens = preprocess_text(text, self.stopwords)
@@ -44,10 +48,29 @@ class InvertedIndex:
             else:
                 self.index[token] = {doc_id}
 
+            if self.term_frequencies.get(doc_id):
+                self.term_frequencies[doc_id].update([token])
+            else:
+                self.term_frequencies[doc_id] = Counter([token])
+
+    def __save_file_operation(self, file_path, object):
+        with open(file_path, 'wb') as file:
+            pickle.dump(object, file)
+
+    def __load_file_operation(self, file_path):
+        with open(file_path, 'rb') as file:
+            object = pickle.load(file)
+        return object
+
     def get_documents(self, term):
         term = term.lower()
         doc_ids = self.index.get(term, {})
         return sorted(list(doc_ids))
+    
+    def get_tf(self, doc_id, term):
+        term = term.lower()
+        doc_term_frequencies = self.term_frequencies.get(doc_id, Counter())
+        return doc_term_frequencies.get(term, 0)
 
     def build(self, movies):
         for movie in movies:
@@ -56,16 +79,11 @@ class InvertedIndex:
 
     def save(self):
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-
-        with open(self.index_file_path, 'wb') as index_file:
-            pickle.dump(self.index, index_file)
-
-        with open(self.docmap_file_path, 'wb') as docmap_file:
-            pickle.dump(self.docmap, docmap_file)
+        self.__save_file_operation(self.index_file_path, self.index)
+        self.__save_file_operation(self.docmap_file_path, self.docmap)
+        self.__save_file_operation(self.term_frequencies_file_path, self.term_frequencies)
 
     def load(self):
-        with open(self.index_file_path, 'rb') as index_file:
-            self.index = pickle.load(index_file)
-        
-        with open(self.docmap_file_path, 'rb') as docmap_file:
-            self.docmap = pickle.load(docmap_file)
+        self.index = self.__load_file_operation(self.index_file_path)
+        self.docmap = self.__load_file_operation(self.docmap_file_path)
+        self.term_frequencies = self.__load_file_operation(self.term_frequencies_file_path)
