@@ -47,17 +47,23 @@ def tf(doc_id, term) -> None:
     index = InvertedIndex()
     index.load()
     _tf = index.get_tf(doc_id, term)
-    print(_tf)
+    return _tf
 
 
 def idf(term) -> None:
     index = InvertedIndex()
     index.load()
     docs = index.get_documents(term)
-    print(len(index.docmap), len(docs))
     _idf = math.log((len(index.docmap) + 1) / (len(docs) + 1))
-    print(f"Inverse document frequency of '{term}': {_idf:.2f}")
+    return _idf
 
+
+def tfidf(doc_id, term) -> None:
+    index = InvertedIndex()
+    index.load()
+    tf_idf = tf(doc_id, term) * idf(term)
+    print(f"TF-IDF score of '{term}' in document '{doc_id}': {tf_idf:.2f}")
+    
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
@@ -75,6 +81,10 @@ def main() -> None:
     idf_parser = subparsers.add_parser("idf", help="Check the inverse document frequency of a search term")
     idf_parser.add_argument("term", type=str, help="Search term")
 
+    tfidf_parser = subparsers.add_parser("tfidf", help="Check the frequency and uniqueness of a search term")
+    tfidf_parser.add_argument("doc_id", type=int, help="Document ID")
+    tfidf_parser.add_argument("term", type=str, help="Search term")
+
     args = parser.parse_args()
 
     match args.command:
@@ -86,6 +96,8 @@ def main() -> None:
             tf(args.doc_id, args.term)
         case "idf":
             idf(args.term)
+        case 'tfidf':
+            tfidf(args.doc_id, args.term)    
         case _:
             parser.print_help()
 
