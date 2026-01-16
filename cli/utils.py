@@ -70,7 +70,7 @@ class InvertedIndex:
             return 0
         
         return self.doc_lengths.total() / doc_count
-
+    
     def get_documents(self, term):
         term = STEMMER.stem(term.lower())
         doc_ids = self.index.get(term, {})
@@ -93,6 +93,19 @@ class InvertedIndex:
         length_norm = 1 - b + b * (doc_length / self.__get_avg_doc_length())
         bm25_tf = (tf * (k1 + 1)) / (tf + k1 * length_norm)
         return bm25_tf
+    
+    def bm25(self, doc_id, term):
+        bm25_tf = self.get_bm25_tf(doc_id, term)
+        bm25_idf = self.get_bm25_idf(term)
+        return bm25_tf * bm25_idf
+
+    def bm25_search(self, query, limit):
+        query_tokens = preprocess_text(query, self.stopwords)
+        scores = Counter()
+        for doc_id in self.docmap.keys():
+            for token in query_tokens:
+                scores[doc_id] += self.bm25(doc_id, token)
+        return scores.most_common(limit)
     
     def build(self, movies):
         for movie in movies:
