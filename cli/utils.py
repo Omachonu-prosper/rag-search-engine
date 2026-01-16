@@ -3,7 +3,7 @@ import pickle
 import math
 from pathlib import Path
 from collections import Counter
-from constants import STEMMER, BM25_K1
+from constants import STEMMER, BM25_K1, BM25_B
 
 def get_stop_words() -> list[str]:
     with open('/home/bknd-bobby/projects/rag-search-engine/data/stopwords.txt') as file:
@@ -28,18 +28,22 @@ def preprocess_text(text: str, stop_words: list[str]) -> list[str]:
 
 
 class InvertedIndex:
-    index = {}
-    docmap = {}
-    term_frequencies = {}
-
     stopwords = get_stop_words()
     cache_dir = Path('/home/bknd-bobby/projects/rag-search-engine/cache')
     index_file_path = cache_dir / 'index.pkl'
     docmap_file_path = cache_dir / 'docmap.pkl'
     term_frequencies_file_path = cache_dir / 'term_frequencies.pkl'
+    doc_lengths_file_path = cache_dir / "doc_lengths.pkl"
+
+    def __init__(self):
+        self.index = {}
+        self.docmap = {}
+        self.doc_lengths = {}
+        self.term_frequencies = {}
 
     def __add_document(self, doc_id, text):
         tokens = preprocess_text(text, self.stopwords)
+        self.doc_lengths[doc_id] = len(tokens)
         for token in tokens:
             if self.index.get(token):
                 self.index[token].add(doc_id)
@@ -59,6 +63,16 @@ class InvertedIndex:
         with open(file_path, 'rb') as file:
             object = pickle.load(file)
         return object
+    
+    def __get_avg_doc_length(self):
+        doc_count = len(self.doc_lengths)
+        if doc_count == 0:
+            return 0
+        
+        total_lengths = 0
+        for doc_length in self.doc_lengths.values():
+              total_lengths += doc_length
+        return total_lengths / doc_count
 
     def get_documents(self, term):
         term = STEMMER.stem(term.lower())
@@ -76,9 +90,11 @@ class InvertedIndex:
         bm25_idf = math.log((N - df + 0.5) / (df + 0.5) + 1)
         return bm25_idf
     
-    def get_bm25_tf(self, doc_id, term, k1=BM25_K1):
+    def get_bm25_tf(self, doc_id, term, k1=BM25_K1, b=BM25_B):
         tf = self.get_tf(doc_id, term)
-        bm25_tf = (tf * (k1 + 1)) / (tf + k1)
+        doc_length = self.doc_lengths[doc_id]
+        length_norm = 1 - b + b * (doc_length / self.__get_avg_doc_length())
+        bm25_tf = (tf * (k1 + 1)) / (tf + k1 * length_norm)
         return bm25_tf
     
     def build(self, movies):
@@ -91,8 +107,10 @@ class InvertedIndex:
         self.__save_file_operation(self.index_file_path, self.index)
         self.__save_file_operation(self.docmap_file_path, self.docmap)
         self.__save_file_operation(self.term_frequencies_file_path, self.term_frequencies)
+        self.__save_file_operation(self.doc_lengths_file_path, self.doc_lengths)
 
     def load(self):
         self.index = self.__load_file_operation(self.index_file_path)
         self.docmap = self.__load_file_operation(self.docmap_file_path)
         self.term_frequencies = self.__load_file_operation(self.term_frequencies_file_path)
+        self.doc_lengths = self.__load_file_operation(self.doc_lengths_file_path)
