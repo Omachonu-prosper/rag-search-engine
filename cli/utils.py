@@ -3,10 +3,7 @@ import pickle
 import math
 from pathlib import Path
 from collections import Counter
-from nltk.stem import PorterStemmer
-
-STEMMER = PorterStemmer()
-
+from constants import STEMMER, BM25_K1
 
 def get_stop_words() -> list[str]:
     with open('/home/bknd-bobby/projects/rag-search-engine/data/stopwords.txt') as file:
@@ -78,6 +75,11 @@ class InvertedIndex:
         df = len(self.get_documents(term))
         bm25_idf = math.log((N - df + 0.5) / (df + 0.5) + 1)
         return bm25_idf
+    
+    def get_bm25_tf(self, doc_id, term, k1=BM25_K1):
+        tf = self.get_tf(doc_id, term)
+        bm25_tf = (tf * (k1 + 1)) / (tf + k1)
+        return bm25_tf
     
     def build(self, movies):
         for movie in movies:
