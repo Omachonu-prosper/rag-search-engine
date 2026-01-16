@@ -38,7 +38,7 @@ class InvertedIndex:
     def __init__(self):
         self.index = {}
         self.docmap = {}
-        self.doc_lengths = {}
+        self.doc_lengths = Counter()
         self.term_frequencies = {}
 
     def __add_document(self, doc_id, text):
@@ -69,10 +69,7 @@ class InvertedIndex:
         if doc_count == 0:
             return 0
         
-        total_lengths = 0
-        for doc_length in self.doc_lengths.values():
-              total_lengths += doc_length
-        return total_lengths / doc_count
+        return self.doc_lengths.total() / doc_count
 
     def get_documents(self, term):
         term = STEMMER.stem(term.lower())

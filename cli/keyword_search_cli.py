@@ -36,12 +36,17 @@ def search(query: str) -> None:
     
 
 def build() -> None:
+    import time
+    start_time = time.perf_counter()
     with open('/home/bknd-bobby/projects/rag-search-engine/data/movies.json') as file:
         movies = json.load(file).get("movies", [])
     
     index = InvertedIndex()
     index.build(movies)
     index.save()
+    end_time = time.perf_counter()
+    duration = end_time - start_time
+    print(f"Finished operation in {duration:.4f} seconds")
 
 
 def tf(doc_id, term) -> None:
