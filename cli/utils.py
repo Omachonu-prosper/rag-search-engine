@@ -1,5 +1,6 @@
 import string
 import pickle
+import math
 from pathlib import Path
 from collections import Counter
 from nltk.stem import PorterStemmer
@@ -71,6 +72,12 @@ class InvertedIndex:
         term = STEMMER.stem(term.lower())
         doc_term_frequencies = self.term_frequencies.get(doc_id, Counter())
         return doc_term_frequencies.get(term, 0)
+    
+    def get_bm25_idf(self, term):
+        N = len(self.docmap)
+        df = len(self.get_documents(term))
+        bm25_idf = math.log((N - df + 0.5) / (df + 0.5) + 1)
+        return bm25_idf
     
     def build(self, movies):
         for movie in movies:
