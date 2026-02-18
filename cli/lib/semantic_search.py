@@ -41,10 +41,10 @@ class SemanticSearch:
         print("Building embeddings")
         return self.build_embeddings(documents)
 
-    def generate_embeddings(self, text):
+    def generate_embeddings(self, text: str):
         if not text or not isinstance(text, str) or text.isspace():
             raise ValueError("Text must be a valid string and not just whitespace")
-        embedding = self.model.encode([text])
+        embedding = self.model.encode([text.strip()])
         return embedding[0]
         
 
@@ -69,3 +69,11 @@ def verify_embeddings():
     embeddings = semantic_search.load_or_create_embeddings(documents)
     print(f"Number of docs:   {len(documents)}")
     print(f"Embeddings shape: {embeddings.shape[0]} vectors in {embeddings.shape[1]} dimensions")
+
+
+def embed_query_text(query):
+    semantic_search = SemanticSearch()
+    embedding = semantic_search.generate_embeddings(query)
+    print(f"Query: {query}")
+    print(f"First 5 dimensions: {embedding[:5]}")
+    print(f"Shape: {embedding.shape}")
