@@ -46,6 +46,28 @@ class SemanticSearch:
             raise ValueError("Text must be a valid string and not just whitespace")
         embedding = self.model.encode([text.strip()])
         return embedding[0]
+    
+    def search(self, query, limit):
+        if self.embeddings is None:
+            raise ValueError("No embeddings loaded. Call `load_or_create_embeddings` first.")
+        
+        results = []
+        query_embeddings = self.generate_embeddings(query)
+        for index, doc_embedding in enumerate(self.embeddings):
+            similarity = cosine_similarity(doc_embedding, query_embeddings)
+            results.append((similarity, self.documents[index]))
+        results.sort(key=lambda doc: doc[0], reverse=True)
+        
+        top_results = []
+        for result in results[:limit]:
+            score = result[0]
+            document = result[1]
+            top_results.append({
+                'score': score,
+                'title': document['title'],
+                'description': document['description']
+            })
+        return top_results
         
 
 def verify_model():
@@ -77,3 +99,14 @@ def embed_query_text(query):
     print(f"Query: {query}")
     print(f"First 5 dimensions: {embedding[:5]}")
     print(f"Shape: {embedding.shape}")
+
+
+def cosine_similarity(vec1, vec2):
+    dot_product = np.dot(vec1, vec2)
+    norm1 = np.linalg.norm(vec1)
+    norm2 = np.linalg.norm(vec2)
+
+    if norm1 == 0 or norm2 == 0:
+        return 0.0
+
+    return dot_product / (norm1 * norm2)
